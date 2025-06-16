@@ -1,4 +1,4 @@
-# Advanced Chess Analysis & Training Suite
+# Searchless Chess Engine Analysis & Training Suite
 
 This project is a Python-based chess analysis and training suite built with Tkinter and powered by the [**searchless-chess from deep mind**](https://github.com/google-deepmind/searchless_chess) library—a transformer-based neural network engine that evaluates chess positions purely through pattern recognition, without relying on brute-force search.
 
