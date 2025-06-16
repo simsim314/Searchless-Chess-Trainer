@@ -1,6 +1,6 @@
 # Advanced Chess Analysis & Training Suite
 
-This project is a Python-based chess analysis and training suite built with Tkinter and powered by the **searchless-chess** library—a transformer-based neural network engine that evaluates chess positions purely through pattern recognition, without relying on brute-force search.
+This project is a Python-based chess analysis and training suite built with Tkinter and powered by the [**searchless-chess from deep mind**](https://github.com/google-deepmind/searchless_chess) library—a transformer-based neural network engine that evaluates chess positions purely through pattern recognition, without relying on brute-force search.
 
 Unlike traditional chess engines that evaluate millions of positions per second, **searchless-chess** makes moves based solely on deep positional understanding, just like a human master. This eliminates the usual frustration or excuse of competing against a machine’s calculation speed, keeping training realistic, fair, and insightful.
 
@@ -32,8 +32,12 @@ Command-line tool that detects blunders from PGN files and creates a `blunders_r
 ## Installation
 
 ```bash
-pip install searchless_chess Pillow
-````
+git clone https://github.com/simsim314/Searchless-Chess-Trainer.git
+cd searchless-chess/checkpoints
+bash download.sh
+cd ..
+cd ..
+```
 
 ---
 
