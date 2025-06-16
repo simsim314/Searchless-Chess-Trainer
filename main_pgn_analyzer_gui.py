@@ -124,7 +124,8 @@ class MainPgnAnalyzerGUI:
             'populate_move_list': self.populate_move_list,
             'show_error': lambda title, msg: messagebox.showerror(title, msg),
             'update_move_selection': self.update_move_list_selection,
-            'update_button_states': self._update_button_states
+            'update_button_states': self._update_button_states,
+            'refresh_display': self.refresh_display
         }
 
         self.controller = PgnAnalyzerController(
@@ -203,8 +204,9 @@ class MainPgnAnalyzerGUI:
 
     def populate_move_list(self, analysis_results):
         def task():
+            # Skip the initial dummy entry at index 0
             self.move_listbox.delete(0, tk.END)
-            for i, result in enumerate(analysis_results):
+            for i, result in enumerate(analysis_results[1:]):
                 move_num_str = f"{(result['ply'] + 1) // 2}.{'..' if result['ply'] % 2 == 0 else ''}"
                 display_text = f"{move_num_str:<5} {result['move_san']:<8} {result.get('quality_symbol', '')}"
                 self.move_listbox.insert(tk.END, display_text)
@@ -213,11 +215,21 @@ class MainPgnAnalyzerGUI:
     
     def update_move_list_selection(self, index):
         def task():
+            # Adjust index for listbox since it doesn't have the dummy entry
+            listbox_index = index -1
+            if listbox_index < 0: return
             self.move_listbox.selection_clear(0, tk.END)
-            self.move_listbox.selection_set(index)
-            self.move_listbox.activate(index)
-            self.move_listbox.see(index)
+            self.move_listbox.selection_set(listbox_index)
+            self.move_listbox.activate(listbox_index)
+            self.move_listbox.see(listbox_index)
             self._update_button_states()
+        self.root.after(0, task)
+
+    def refresh_display(self):
+        def task():
+            if self.controller:
+                self.controller._redraw_visuals_for_current_move()
+                self.update_move_list_selection(self.controller.current_move_index)
         self.root.after(0, task)
 
 def setup_logging():
