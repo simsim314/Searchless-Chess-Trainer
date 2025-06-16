@@ -97,6 +97,10 @@ class PgnAnalyzerController:
     def _perform_full_game_analysis(self):
         if self.gui_callbacks: self.gui_callbacks['update_status']("Analyzing game...")
         node = self.pgn_manager.game
+        
+        # Add initial state as index -1 for viewing before first move
+        self.analysis_results.append({ "ply": 0, "fen_before_move": node.board().fen() })
+
         while node.variations:
             node = node.variations[0]; move = node.move; board_before_move = node.parent.board()
             move_num_str = f"{(node.ply() + 1) // 2}.{'..' if node.ply() % 2 == 0 else ''}"
@@ -124,10 +128,17 @@ class PgnAnalyzerController:
                 elif pwin_drop <= GOOD_MOVE_MAX_DROP and 0 < move_rank < GOOD_MOVE_TOP_N_THRESHOLD: analysis_entry["quality_symbol"] = MOVE_QUALITY_GOOD
                 elif pwin_drop <= INTERESTING_MOVE_MAX_DROP and (move_rank == -1 or move_rank >= INTERESTING_MOVE_TOP_N_THRESHOLD): analysis_entry["quality_symbol"] = MOVE_QUALITY_INTERESTING
                 else: analysis_entry["quality_symbol"] = MOVE_QUALITY_GOOD
+            
+            # The ply number matches the index in the listbox, but our results list has an extra item at the start
             self.analysis_results.append(analysis_entry)
-            if self.gui_callbacks: self.gui_callbacks['update_progress'](node.ply(), self.total_plies)
+            self.current_move_index = node.ply()
+
+            if self.gui_callbacks: 
+                self.gui_callbacks['update_progress'](node.ply(), self.total_plies)
+                self.gui_callbacks['refresh_display']() # Trigger a redraw
+            
         if self.gui_callbacks: self.gui_callbacks['update_status']("Analysis complete.")
-        if self.gui_callbacks and self.analysis_results: self.gui_callbacks['update_move_selection'](self.current_move_index if self.current_move_index != -1 else 0)
+        # Don't automatically select a move, let the user do it. The last analyzed state will be shown.
 
     def _handle_user_move_attempt(self, uci: str):
         if self.interaction_mode == 'play':
@@ -194,12 +205,19 @@ class PgnAnalyzerController:
             self._redraw_for_play_mode()
 
     def _redraw_for_analysis_mode(self):
+        if not (0 <= self.current_move_index < len(self.analysis_results)): return
         move_data = self.analysis_results[self.current_move_index]
         board_before_move = chess.Board(move_data["fen_before_move"])
         self.board_widget.set_position(move_data["fen_before_move"])
         if self.board_widget.white_at_bottom != (self.tracked_player_color == chess.WHITE): self.board_widget.flip_board_orientation()
         else: self.board_widget.clear_visual_cues(); self.board_widget.redraw_pieces_only()
         
+        # Ply 0 is just the starting position, no move was made
+        if move_data.get('ply', 0) == 0:
+            self.feedback_panel.update_feedback("Start of game.")
+            self.feedback_panel.clear_hints()
+            return
+            
         top_moves_9m = {m['uci']: m for m in move_data.get("top_moves_9m", [])[:3]}
         top_moves_136m = {m['uci']: m for m in move_data.get("top_moves_136m", [])[:3]}
         hints_panel_text = ""
@@ -225,8 +243,6 @@ class PgnAnalyzerController:
         if move_data["move_uci"] in all_ucis: all_ucis.remove(move_data["move_uci"])
 
         processed_hints = [{'uci': uci, 'san': top_moves_136m.get(uci, {}).get('san') or top_moves_9m.get(uci, {}).get('san', uci), 'p_win_9m': top_moves_9m[uci]['p_win'] if uci in top_moves_9m else None, 'p_win_136m': top_moves_136m[uci]['p_win'] if uci in top_moves_136m else None} for uci in all_ucis]
-        
-        # The engine's p_win is always for the side to move, so higher is always better.
         processed_hints.sort(key=lambda x: x['p_win_136m'] if x['p_win_136m'] is not None else x['p_win_9m'], reverse=True)
         
         hints_panel_text += "\n---Suggestions---\n"
@@ -259,8 +275,6 @@ class PgnAnalyzerController:
         all_ucis = set(top_moves_9m.keys()) | set(top_moves_136m.keys())
 
         processed_hints = [{'uci': uci, 'san': top_moves_136m.get(uci, {}).get('san') or top_moves_9m.get(uci, {}).get('san', uci), 'p_win_9m': top_moves_9m[uci]['p_win'] if uci in top_moves_9m else None, 'p_win_136m': top_moves_136m[uci]['p_win'] if uci in top_moves_136m else None} for uci in all_ucis]
-        
-        # The engine's p_win is always for the side to move, so higher is always better.
         processed_hints.sort(key=lambda x: x['p_win_136m'] if x['p_win_136m'] is not None else x['p_win_9m'], reverse=True)
         
         hints_panel_text = "--- Play Mode Hints ---\n"
