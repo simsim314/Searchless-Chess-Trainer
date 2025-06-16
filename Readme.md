@@ -33,7 +33,7 @@ Command-line tool that detects blunders from PGN files and creates a `blunders_r
 
 ```bash
 git clone https://github.com/simsim314/Searchless-Chess-Trainer.git
-cd searchless-chess/checkpoints
+cd Searchless-Chess-Trainer/searchless-chess/checkpoints
 bash download.sh
 cd ..
 cd ..
